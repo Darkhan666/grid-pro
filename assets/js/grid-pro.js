@@ -6,7 +6,7 @@
     "use strict";
 
     var DEBOUNCE_MS = 80;
-    var MASONRY_ROW_PX = 4;
+    var MASONRY_ROW_PX = 1;
     var MOBILE_BP = 768;
     var GRID_REGEX = /^grid-(\d+(-\d+)*)$/;
 
@@ -197,7 +197,7 @@
             }
             /* Batch write: apply all spans — before browser paints */
             for (var i = 0; i < items.length; i++) {
-                var rowSpan = Math.ceil((heights[i] + gapY) / (MASONRY_ROW_PX + gapY));
+                var rowSpan = Math.ceil((heights[i] + gapY) / MASONRY_ROW_PX);
                 items[i].style.gridRowEnd = "span " + rowSpan;
             }
         });
