@@ -1,5 +1,5 @@
 /* ===================================
-   GRID-PRO v3.2 — Base-10 Grid System
+   GRID-PRO v3.3 — Base-10 Grid System
    =================================== */
 
 /* 2.3: Fallback no-JS — grille auto-fit si GridPro ne s'initialise pas */
@@ -22,6 +22,16 @@
     align-items: start;
 }
 
+
+/* ====== MOBILE: single column ====== */
+@media (max-width: 767px) {
+    [class*="grid-"]:not(.gridpro-active) {
+        grid-template-columns: 1fr;
+    }
+    .gridpro-active.gridpro-masonry {
+        grid-auto-rows: auto;
+    }
+}
 
 /* ====== GAP SYSTEM ====== */
 
