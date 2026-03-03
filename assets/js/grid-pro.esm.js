@@ -1,10 +1,11 @@
 /* ===================================
-   GRID-PRO ENGINE v3.2 — ESM Module
+   GRID-PRO ENGINE v3.3 — ESM Module
    Base-10 proportional grid + masonry
    =================================== */
 
 var DEBOUNCE_MS = 80;
 var MASONRY_ROW_PX = 4;
+var MOBILE_BP = 768;
 var GRID_REGEX = /^grid-(\d+(-\d+)*)$/;
 
 /* ---------- Helpers ---------- */
@@ -106,13 +107,32 @@ export function apply(el) {
     for (var i = 0; i < el.children.length; i++) items.push(el.children[i]);
     if (items.length === 0) return;
 
-    /* Signature: weights + child count */
-    var sig = weights.join("-") + ":" + items.length;
+    /* Mobile detection (container width) */
+    var isMobile = el.clientWidth < MOBILE_BP;
+
+    /* Signature: weights + child count + mobile state */
+    var sig = weights.join("-") + ":" + items.length + (isMobile ? ":m" : "");
     if (el._gridproSig === sig) return;
     el._gridproSig = sig;
 
-    /* Base-10 grid: each weight unit = 10% of the row (max 10 per row) */
     el.classList.add("gridpro-active");
+
+    /* Mobile: single column, skip masonry */
+    if (isMobile) {
+        el.style.gridTemplateColumns = "1fr";
+        el.style.gridAutoRows = "auto";
+        for (var i = 0; i < items.length; i++) {
+            items[i].style.gridColumn = "";
+            items[i].style.gridRowEnd = "";
+        }
+        el.dispatchEvent(new CustomEvent('gridpro:applied', {
+            bubbles: true,
+            detail: { columns: 1, template: "1fr", collapsed: true }
+        }));
+        return;
+    }
+
+    /* Base-10 grid: each weight unit = 10% of the row (max 10 per row) */
     el.style.gridTemplateColumns = "repeat(10, 1fr)";
 
     /* Assign column span to each child (cycling weights) */
@@ -143,13 +163,21 @@ export function apply(el) {
     }
     var template = templateParts.join(" ");
 
-    /* Masonry */
+    /* Masonry / Equal-height rows */
     if (el.classList.contains("gridpro-masonry")) {
         applyMasonry(el);
     } else {
         el.style.gridAutoRows = "";
         for (var i = 0; i < items.length; i++) {
             items[i].style.gridRowEnd = "";
+        }
+        var maxH = 0;
+        for (var i = 0; i < items.length; i++) {
+            var h = items[i].getBoundingClientRect().height;
+            if (h > maxH) maxH = h;
+        }
+        if (maxH > 0) {
+            el.style.gridAutoRows = maxH + "px";
         }
     }
 
