@@ -13,6 +13,10 @@ And media queries force you to think in viewport widths, not container widths.
 
 **Grid-Pro** fixes both: write a single class like `grid-2-6-2`, and the engine creates a base-10 proportional grid where each weight unit equals 10% of the container. When weights exceed 10 per row (100%), children wrap to the next line — no breakpoints needed.
 
+## Live Demo
+
+👉 [https://pointpsd.fr/grid-pro/demo/](https://grid-pro.pointpsd.fr/)
+
 ## Installation
 
 ### CDN (jsDelivr)
