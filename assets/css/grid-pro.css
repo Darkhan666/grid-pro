@@ -1,0 +1,55 @@
+/* ===================================
+   GRID-PRO v3.2 — Base-10 Grid System
+   =================================== */
+
+/* 2.3: Fallback no-JS — grille auto-fit si GridPro ne s'initialise pas */
+[class*="grid-"]:not(.gridpro-active) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--gridpro-gap, 12px);
+}
+
+/* Container: single CSS Grid (set by JS) */
+.gridpro-active {
+    display: grid;
+    column-gap: var(--gridpro-gap-x, var(--gridpro-gap, 12px));
+    row-gap: var(--gridpro-gap-y, var(--gridpro-gap, 12px));
+}
+
+/* Masonry mode: fine-grained rows for vertical packing */
+.gridpro-active.gridpro-masonry {
+    grid-auto-rows: 4px;
+    align-items: start;
+}
+
+
+/* ====== GAP SYSTEM ====== */
+
+.gap-0 { --gridpro-gap: 0px; }
+.gap-1 { --gridpro-gap: 4px; }
+.gap-2 { --gridpro-gap: 8px; }
+.gap-3 { --gridpro-gap: 16px; }
+.gap-4 { --gridpro-gap: 24px; }
+.gap-5 { --gridpro-gap: 32px; }
+.gap-6 { --gridpro-gap: 48px; }
+.gap-7 { --gridpro-gap: 64px; }
+
+/* Horizontal gap override */
+.gap-x-0 { --gridpro-gap-x: 0px; }
+.gap-x-1 { --gridpro-gap-x: 4px; }
+.gap-x-2 { --gridpro-gap-x: 8px; }
+.gap-x-3 { --gridpro-gap-x: 16px; }
+.gap-x-4 { --gridpro-gap-x: 24px; }
+.gap-x-5 { --gridpro-gap-x: 32px; }
+.gap-x-6 { --gridpro-gap-x: 48px; }
+.gap-x-7 { --gridpro-gap-x: 64px; }
+
+/* Vertical gap override */
+.gap-y-0 { --gridpro-gap-y: 0px; }
+.gap-y-1 { --gridpro-gap-y: 4px; }
+.gap-y-2 { --gridpro-gap-y: 8px; }
+.gap-y-3 { --gridpro-gap-y: 16px; }
+.gap-y-4 { --gridpro-gap-y: 24px; }
+.gap-y-5 { --gridpro-gap-y: 32px; }
+.gap-y-6 { --gridpro-gap-y: 48px; }
+.gap-y-7 { --gridpro-gap-y: 64px; }
