@@ -15,7 +15,7 @@ And media queries force you to think in viewport widths, not container widths.
 
 ## Live Demo
 
-👉 [https://pointpsd.fr/grid-pro/demo/](https://grid-pro.pointpsd.fr/)
+👉 [https://grid-pro.pointpsd.fr](https://grid-pro.pointpsd.fr/)
 
 ## Installation
 
