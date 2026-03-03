@@ -1,5 +1,5 @@
 /* ===================================
-   GRID-PRO ENGINE v3.2
+   GRID-PRO ENGINE v3.3
    Base-10 proportional grid + masonry
    =================================== */
 (function () {
@@ -7,6 +7,7 @@
 
     var DEBOUNCE_MS = 80;
     var MASONRY_ROW_PX = 4;
+    var MOBILE_BP = 768;
     var GRID_REGEX = /^grid-(\d+(-\d+)*)$/;
 
     /* ---------- Helpers ---------- */
@@ -85,16 +86,35 @@
         for (var i = 0; i < el.children.length; i++) items.push(el.children[i]);
         if (items.length === 0) return;
 
-        /* 2. Signature: weights + child count */
-        var sig = weights.join("-") + ":" + items.length;
+        /* 2. Mobile detection (container width) */
+        var isMobile = el.clientWidth < MOBILE_BP;
+
+        /* 3. Signature: weights + child count + mobile state */
+        var sig = weights.join("-") + ":" + items.length + (isMobile ? ":m" : "");
         if (el._gridproSig === sig) return;
         el._gridproSig = sig;
 
-        /* 3. Base-10 grid: each weight unit = 10% of the row (max 10 per row) */
         el.classList.add("gridpro-active");
+
+        /* 4. Mobile: single column, skip masonry */
+        if (isMobile) {
+            el.style.gridTemplateColumns = "1fr";
+            el.style.gridAutoRows = "auto";
+            for (var i = 0; i < items.length; i++) {
+                items[i].style.gridColumn = "";
+                items[i].style.gridRowEnd = "";
+            }
+            el.dispatchEvent(new CustomEvent('gridpro:applied', {
+                bubbles: true,
+                detail: { columns: 1, template: "1fr", collapsed: true }
+            }));
+            return;
+        }
+
+        /* 5. Base-10 grid: each weight unit = 10% of the row (max 10 per row) */
         el.style.gridTemplateColumns = "repeat(10, 1fr)";
 
-        /* 4. Assign column span to each child (cycling weights) */
+        /* 6. Assign column span to each child (cycling weights) */
         var rowSum = 0;
         var firstRowCols = 0;
         var firstRowDone = false;
@@ -115,14 +135,14 @@
             }
         }
 
-        /* 5. Build template string for event (first row) */
+        /* 7. Build template string for event (first row) */
         var templateParts = [];
         for (var j = 0; j < firstRowWeights.length; j++) {
             templateParts.push(firstRowWeights[j] + "fr");
         }
         var template = templateParts.join(" ");
 
-        /* 6. Masonry */
+        /* 8. Masonry / Equal-height rows */
         if (el.classList.contains("gridpro-masonry")) {
             applyMasonry(el);
         } else {
@@ -130,9 +150,17 @@
             for (var i = 0; i < items.length; i++) {
                 items[i].style.gridRowEnd = "";
             }
+            var maxH = 0;
+            for (var i = 0; i < items.length; i++) {
+                var h = items[i].getBoundingClientRect().height;
+                if (h > maxH) maxH = h;
+            }
+            if (maxH > 0) {
+                el.style.gridAutoRows = maxH + "px";
+            }
         }
 
-        /* 7. Dispatch custom event */
+        /* 9. Dispatch custom event */
         el.dispatchEvent(new CustomEvent('gridpro:applied', {
             bubbles: true,
             detail: {
