@@ -20,6 +20,9 @@ And media queries force you to think in viewport widths, not container widths.
 
 ## Installation
 
+```bash
+npm install @darkhan666/grid-pro
+
 ### CDN (jsDelivr)
 
 ```html
