@@ -24,19 +24,19 @@ And media queries force you to think in viewport widths, not container widths.
 ### CDN (jsDelivr)
 
 ```html
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/grid-pro@3.4.0/dist/grid-pro.min.css">
-<script src="https://cdn.jsdelivr.net/npm/grid-pro@3.4.0/dist/grid-pro.min.js"></script>
+<link rel="stylesheet"href="https://cdn.jsdelivr.net/npm/@darkhan666/grid-pro@3.5.0/dist/grid-pro.min.css"">
+<script src="https://cdn.jsdelivr.net/npm/@darkhan666/grid-pro@3.5.0/dist/grid-pro.min.js"></script>
 ```
 
 ### npm
 
 ```bash
-npm install grid-pro
+npm install @darkhan666/grid-pro
 ```
 
 ```js
-import GridPro from 'grid-pro';
-import 'grid-pro/css';
+import GridPro from "@darkhan666/grid-pro";
+import "@darkhan666/grid-pro/css";
 ```
 
 ### Manual
