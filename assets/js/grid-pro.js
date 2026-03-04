@@ -1,6 +1,6 @@
 /* ===================================
-   GRID-PRO ENGINE v3.3
-   Base-10 proportional grid + masonry
+   GRID-PRO ENGINE v3.4
+   Hybrid proportional grid + masonry
    =================================== */
 (function () {
     "use strict";
@@ -111,36 +111,56 @@
             return;
         }
 
-        /* 5. Base-10 grid: each weight unit = 10% of the row (max 10 per row) */
-        el.style.gridTemplateColumns = "repeat(10, 1fr)";
+        /* 5. Calculate weight sum to determine grid mode */
+        var sum = 0;
+        for (var i = 0; i < weights.length; i++) sum += weights[i];
 
-        /* 6. Assign column span to each child (cycling weights) */
-        var rowSum = 0;
-        var firstRowCols = 0;
-        var firstRowDone = false;
-        var firstRowWeights = [];
+        var firstRowCols;
+        var template;
 
-        for (var i = 0; i < items.length; i++) {
-            var w = weights[i % weights.length];
-            if (w > 10) w = 10;
-            items[i].style.gridColumn = "span " + w;
-            if (!firstRowDone) {
-                if (rowSum + w <= 10) {
-                    rowSum += w;
-                    firstRowCols++;
-                    firstRowWeights.push(w);
-                } else {
-                    firstRowDone = true;
+        if (sum < 10) {
+            /* 5a. Ratio mode: weights become fr units, fill 100% */
+            var templateParts = [];
+            for (var i = 0; i < weights.length; i++) {
+                templateParts.push(weights[i] + "fr");
+            }
+            template = templateParts.join(" ");
+            el.style.gridTemplateColumns = template;
+            firstRowCols = weights.length;
+
+            for (var i = 0; i < items.length; i++) {
+                items[i].style.gridColumn = "auto";
+            }
+        } else {
+            /* 5b. Base-10 grid: each weight unit = 10% of the row (max 10 per row) */
+            el.style.gridTemplateColumns = "repeat(10, 1fr)";
+
+            var rowSum = 0;
+            firstRowCols = 0;
+            var firstRowDone = false;
+            var firstRowWeights = [];
+
+            for (var i = 0; i < items.length; i++) {
+                var w = weights[i % weights.length];
+                if (w > 10) w = 10;
+                items[i].style.gridColumn = "span " + w;
+                if (!firstRowDone) {
+                    if (rowSum + w <= 10) {
+                        rowSum += w;
+                        firstRowCols++;
+                        firstRowWeights.push(w);
+                    } else {
+                        firstRowDone = true;
+                    }
                 }
             }
-        }
 
-        /* 7. Build template string for event (first row) */
-        var templateParts = [];
-        for (var j = 0; j < firstRowWeights.length; j++) {
-            templateParts.push(firstRowWeights[j] + "fr");
+            var templateParts = [];
+            for (var j = 0; j < firstRowWeights.length; j++) {
+                templateParts.push(firstRowWeights[j] + "fr");
+            }
+            template = templateParts.join(" ");
         }
-        var template = templateParts.join(" ");
 
         /* 8. Masonry / Equal-height rows */
         if (el.classList.contains("gridpro-masonry")) {
