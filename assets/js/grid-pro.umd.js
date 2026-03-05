@@ -1,6 +1,6 @@
 /* ===================================
-   GRID-PRO ENGINE v3.4 — UMD Module
-   Hybrid proportional grid + masonry
+   GRID-PRO ENGINE v3.5.1 — UMD Module
+   Base-10 proportional grid + masonry
    =================================== */
 (function (root, factory) {
     if (typeof define === 'function' && define.amd) {
@@ -14,9 +14,20 @@
     "use strict";
 
     var DEBOUNCE_MS = 80;
-    var MASONRY_ROW_PX = 1;
+    var MASONRY_ROW_PX = 4;
     var MOBILE_BP = 768;
     var GRID_REGEX = /^grid-(\d+(-\d+)*)$/;
+
+    /* ---------- Global options ---------- */
+
+    var _globalOptions = {};
+
+    function configure(options) {
+        _globalOptions = options || {};
+        if (_globalOptions.debounce) DEBOUNCE_MS = _globalOptions.debounce;
+        if (_globalOptions.mobileBreakpoint) MOBILE_BP = _globalOptions.mobileBreakpoint;
+        if (_globalOptions.masonryBaseRow) MASONRY_ROW_PX = _globalOptions.masonryBaseRow;
+    }
 
     /* ---------- Helpers ---------- */
 
@@ -53,8 +64,11 @@
     /* ---------- Masonry ---------- */
 
     function applyMasonry(el) {
+        var baseRow = (el._gridproOptions && el._gridproOptions.masonryBaseRow)
+            ? el._gridproOptions.masonryBaseRow
+            : MASONRY_ROW_PX;
         var gapY = getGapPx(el, "--gridpro-gap-y");
-        el.style.gridAutoRows = MASONRY_ROW_PX + "px";
+        el.style.gridAutoRows = baseRow + "px";
 
         if (el._gridproMasonryRaf) {
             cancelAnimationFrame(el._gridproMasonryRaf);
@@ -71,7 +85,7 @@
                 heights.push(items[i].getBoundingClientRect().height);
             }
             for (var i = 0; i < items.length; i++) {
-                var rowSpan = Math.ceil((heights[i] + gapY) / MASONRY_ROW_PX);
+                var rowSpan = Math.ceil((heights[i] + gapY) / baseRow);
                 items[i].style.gridRowEnd = "span " + rowSpan;
             }
         });
@@ -83,32 +97,51 @@
         var weights = parseGridClass(el);
         if (!weights) return;
 
-        if (el.offsetParent === null || el.clientWidth === 0) return;
+        /* TASK-01: Retry for hidden containers */
+        if (el.clientWidth === 0) {
+            if (!el._gridproRetryPending) {
+                el._gridproRetryPending = true;
+                var retryCount = 0;
+                function retry() {
+                    el._gridproRetryPending = false;
+                    if (el.clientWidth > 0) {
+                        apply(el);
+                    } else if (retryCount < 10) {
+                        retryCount++;
+                        el._gridproRetryPending = true;
+                        requestAnimationFrame(retry);
+                    }
+                }
+                requestAnimationFrame(retry);
+            }
+            return;
+        }
 
+        /* TASK-04: Migration opt-in with warning */
         if (!el._gridproMigrated) {
             var hasRows = false;
             var children = el.children;
             for (var i = 0; i < children.length; i++) {
-                if (children[i].classList.contains("gridpro-row")) {
-                    hasRows = true;
-                    break;
-                }
+                if (children[i].classList.contains("gridpro-row")) { hasRows = true; break; }
             }
             if (hasRows) {
-                var flat = [];
-                for (var i = 0; i < children.length; i++) {
-                    if (children[i].classList.contains("gridpro-row")) {
-                        var inner = children[i].children;
-                        for (var j = 0; j < inner.length; j++) {
-                            flat.push(inner[j]);
+                var opts = el._gridproOptions || {};
+                if (opts.migrateLegacyRows !== false) {
+                    console.warn('[GridPro] Migration automatique des .gridpro-row détectée. ' +
+                        'Les event listeners directs sur ces éléments peuvent être perdus. ' +
+                        'Passez { migrateLegacyRows: false } pour désactiver.');
+                    var flat = [];
+                    for (var i = 0; i < children.length; i++) {
+                        if (children[i].classList.contains("gridpro-row")) {
+                            var inner = children[i].children;
+                            for (var j = 0; j < inner.length; j++) flat.push(inner[j]);
+                        } else {
+                            flat.push(children[i]);
                         }
-                    } else {
-                        flat.push(children[i]);
                     }
+                    while (el.firstChild) el.removeChild(el.firstChild);
+                    for (var i = 0; i < flat.length; i++) el.appendChild(flat[i]);
                 }
-                var frag = document.createDocumentFragment();
-                for (var i = 0; i < flat.length; i++) frag.appendChild(flat[i]);
-                el.replaceChildren(frag);
             }
             el._gridproMigrated = true;
         }
@@ -117,11 +150,14 @@
         for (var i = 0; i < el.children.length; i++) items.push(el.children[i]);
         if (items.length === 0) return;
 
-        /* Mobile detection (container width) */
-        var isMobile = el.clientWidth < MOBILE_BP;
+        /* Mobile detection (container width + real device screen) */
+        var isMobile = el.clientWidth < MOBILE_BP ||
+            (typeof screen !== "undefined" && screen.width < MOBILE_BP && screen.width > 0);
 
-        /* Signature: weights + child count + mobile state */
-        var sig = weights.join("-") + ":" + items.length + (isMobile ? ":m" : "");
+        /* TASK-03: Enhanced signature with masonry + gap */
+        var gapVal = getGapPx(el, "--gridpro-gap");
+        var isMasonry = el.classList.contains("gridpro-masonry") ? ":mas" : "";
+        var sig = weights.join("-") + ":" + items.length + (isMobile ? ":m" : "") + isMasonry + ":g" + gapVal;
         if (el._gridproSig === sig) return;
         el._gridproSig = sig;
 
@@ -146,11 +182,28 @@
         var sum = 0;
         for (var i = 0; i < weights.length; i++) sum += weights[i];
 
+        /* TASK-09: Force mode via class or auto-detect */
+        var forceRatio = el.classList.contains("gridpro-ratio");
+        var forceBase10 = el.classList.contains("gridpro-base10");
+
+        var useRatioMode;
+        if (forceRatio) {
+            useRatioMode = true;
+        } else if (forceBase10) {
+            useRatioMode = false;
+        } else {
+            useRatioMode = (sum < 10);
+            if (sum >= 8 && sum <= 11 && !el._gridproModeWarned) {
+                console.info('[GridPro] Mode auto détecté pour sum=' + sum +
+                    '. Ajoutez .gridpro-ratio ou .gridpro-base10 pour forcer le mode.');
+                el._gridproModeWarned = true;
+            }
+        }
+
         var firstRowCols;
         var template;
 
-        if (sum < 10) {
-            /* Ratio mode: weights become fr units, fill 100% */
+        if (useRatioMode) {
             var templateParts = [];
             for (var i = 0; i < weights.length; i++) {
                 templateParts.push(weights[i] + "fr");
@@ -163,7 +216,6 @@
                 items[i].style.gridColumn = "auto";
             }
         } else {
-            /* Base-10 grid: each weight unit = 10% of the row (max 10 per row) */
             el.style.gridTemplateColumns = "repeat(10, 1fr)";
 
             var rowSum = 0;
@@ -193,7 +245,7 @@
             template = templateParts.join(" ");
         }
 
-        /* Masonry / Equal-height rows */
+        /* TASK-05/06: Masonry / Equal-height (opt-in) / Default */
         if (el.classList.contains("gridpro-masonry")) {
             applyMasonry(el);
         } else {
@@ -201,13 +253,17 @@
             for (var i = 0; i < items.length; i++) {
                 items[i].style.gridRowEnd = "";
             }
-            var maxH = 0;
-            for (var i = 0; i < items.length; i++) {
-                var h = items[i].getBoundingClientRect().height;
-                if (h > maxH) maxH = h;
-            }
-            if (maxH > 0) {
-                el.style.gridAutoRows = maxH + "px";
+            var equalHeight = el.classList.contains("gridpro-equal-height") ||
+                (el._gridproOptions && el._gridproOptions.equalHeight);
+            if (equalHeight) {
+                var maxH = 0;
+                for (var i = 0; i < items.length; i++) {
+                    var h = items[i].getBoundingClientRect().height;
+                    if (h > maxH) maxH = h;
+                }
+                if (maxH > 0) {
+                    el.style.gridAutoRows = maxH + "px";
+                }
             }
         }
 
@@ -257,6 +313,7 @@
                 }
             });
             ro.observe(el);
+            el._gridproRO = ro;
 
             var mo = new MutationObserver(function (mutations) {
                 var needsApply = false;
@@ -277,13 +334,58 @@
                 }
             });
             mo.observe(el, { childList: true, attributes: true, attributeFilter: ["class"] });
+            el._gridproMO = mo;
         }
 
         apply(el);
     }
 
+    /* ---------- TASK-07: destroy / refresh / initAll ---------- */
+
+    function destroy(el) {
+        if (!el._gridproInit) return;
+
+        if (el._gridproRO) { el._gridproRO.disconnect(); el._gridproRO = null; }
+        if (el._gridproMO) { el._gridproMO.disconnect(); el._gridproMO = null; }
+        if (el._gridproMasonryRaf) { cancelAnimationFrame(el._gridproMasonryRaf); }
+
+        el.style.gridTemplateColumns = "";
+        el.style.gridAutoRows = "";
+        var items = el.children;
+        for (var i = 0; i < items.length; i++) {
+            items[i].style.gridColumn = "";
+            items[i].style.gridRowEnd = "";
+        }
+
+        el.classList.remove("gridpro-active");
+        el._gridproInit = false;
+        el._gridproSig = null;
+        el._gridproMigrated = false;
+
+        el.dispatchEvent(new CustomEvent('gridpro:destroyed', { bubbles: true }));
+    }
+
+    function refresh(el) {
+        el._gridproSig = null;
+        apply(el);
+    }
+
+    function initAll(root, options) {
+        var scope = root || document;
+        var all = scope.querySelectorAll('[class^="grid-"], [class*=" grid-"]');
+        for (var i = 0; i < all.length; i++) {
+            if (parseGridClass(all[i])) {
+                init(all[i], options);
+            }
+        }
+    }
+
     return {
         apply: apply,
-        init: init
+        init: init,
+        destroy: destroy,
+        refresh: refresh,
+        initAll: initAll,
+        configure: configure
     };
 }));
