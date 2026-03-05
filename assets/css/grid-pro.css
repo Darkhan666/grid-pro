@@ -1,8 +1,8 @@
 /* ===================================
-   GRID-PRO v3.4 — Hybrid Grid System
+   GRID-PRO v3.5.1 — Base-10 Grid System
    =================================== */
 
-/* 2.3: Fallback no-JS — grille auto-fit si GridPro ne s'initialise pas */
+/* Fallback no-JS — grille auto-fit si GridPro ne s'initialise pas */
 [class*="grid-"]:not(.gridpro-active) {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -16,10 +16,15 @@
     row-gap: var(--gridpro-gap-y, var(--gridpro-gap, 12px));
 }
 
-/* Masonry mode: 1px micro-rows, gap baked into span calculation.
+/* TASK-06: Default non-masonry non-equal-height: items align to start */
+.gridpro-active:not(.gridpro-equal-height):not(.gridpro-masonry) {
+    align-items: start;
+}
+
+/* Masonry mode: 4px micro-rows, gap baked into span calculation.
    !important required to override Bootstrap/framework gap utilities */
 .gridpro-active.gridpro-masonry {
-    grid-auto-rows: 1px;
+    grid-auto-rows: 4px;
     row-gap: 0 !important;
     align-items: start;
 }
@@ -30,8 +35,13 @@
     [class*="grid-"]:not(.gridpro-active) {
         grid-template-columns: 1fr;
     }
-    .gridpro-active.gridpro-masonry {
-        grid-auto-rows: auto;
+    .gridpro-active {
+        grid-template-columns: 1fr !important;
+        grid-auto-rows: auto !important;
+    }
+    .gridpro-active > * {
+        grid-column: auto !important;
+        grid-row-end: auto !important;
     }
 }
 
