@@ -2,7 +2,7 @@
 
 **Hybrid proportional layout engine — no media queries, no breakpoints.**
 
-[![npm version](https://img.shields.io/npm/v/grid-pro)](https://www.npmjs.com/package/grid-pro)
+[![npm version](https://img.shields.io/npm/v/@darkhan666/grid-pro)](https://www.npmjs.com/package/@darkhan666/grid-pro)
 [![license](https://img.shields.io/npm/l/grid-pro)](LICENSE)
 
 ## The problem
